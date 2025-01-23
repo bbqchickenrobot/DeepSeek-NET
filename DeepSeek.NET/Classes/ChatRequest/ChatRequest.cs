@@ -50,13 +50,13 @@ public class ChatRequest
     /// <summary>
     /// Sampling temperature, between 0 and 2. Higher values like 0.8 make the output more random, while lower values like 0.2 make it more focused and deterministic. We generally recommend adjusting this or top_p, but not both.
     /// </summary>
-    public long Temperature { get; set; } = 1;
+    public double Temperature { get; set; } = 1;
 
     /// <summary>
     /// An alternative to sampling with temperature, the model considers the results of the top_p probability tokens. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend adjusting this or temperature, but not both.
     /// </summary>
     [JsonPropertyName("top_p")]
-    public long TopP { get; set; } = 1;
+    public double TopP { get; set; } = 1;
 
     /// <summary>
     /// Whether to return the log probabilities of the output tokens. If true, the log probabilities of each output token are returned in the content of the message.
