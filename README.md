@@ -1,6 +1,6 @@
 # DeepSeek-NET
 
-![NuGet Version](https://img.shields.io/nuget/v/DeepSeek-NET)  
+![NuGet Version](https://img.shields.io/nuget/v/DeepSeek.NET)  
 A modern .NET wrapper for the DeepSeek AI API – integrate conversational AI into your applications with ease.
 
 - **Model Discovery**: Retrieve available AI models effortlessly.
@@ -16,7 +16,7 @@ A modern .NET wrapper for the DeepSeek AI API – integrate conversational AI in
 ## 📦 Installation
 
 ```bash
-dotnet add package DeepSeek-NET
+dotnet add package DeepSeek.NET
 ```
 
 ## 🛠️ Quick Start
