@@ -1,4 +1,4 @@
-# DeepSeek-NET
+# DeepSeek.NET
 
 ![NuGet Version](https://img.shields.io/nuget/v/DeepSeek.NET)  
 A modern .NET wrapper for the DeepSeek AI API – integrate conversational AI into your applications with ease.
