@@ -1,12 +1,12 @@
 # DeepSeek.NET
 
 ![NuGet Version](https://img.shields.io/nuget/v/DeepSeek.NET)  
-A modern .NET wrapper for the DeepSeek AI API – integrate conversational AI into your applications with ease.
+A modern .NET (C#) wrapper for the DeepSeek AI API – integrate conversational AI into your applications with ease.
 
 - **Model Discovery**: Retrieve available AI models effortlessly.
 - **Smart Conversations**: Execute both single-turn and streaming multi-turn dialogues.
 - **Streaming Support**: Real-time response handling for dynamic interactions.
-- **Modern .NET Integration**: Built with .NET 8 and `HttpClient` best practices.
+- **Modern .NET (C#) Integration**: Built with .NET 8 and `HttpClient` best practices.
 
 ## 📋 Prerequisites
 
