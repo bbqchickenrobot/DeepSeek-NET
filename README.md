@@ -32,7 +32,14 @@ var httpClient = new HttpClient();
 var factoryClient = new DeepSeekClient(httpClient, "your_api_key_here");
 ```
 
+(You can change the HttpClient Timeout with `client.setTimeout(int seconds)`)
+
 ### Discover Available Models
+
+DeepSeek offers two AI models for different use cases:
+
+- **`Models.ModelChat`**: Standard conversational AI model, ideal for chat interactions.
+- **`Models.ModelReasoner`**: Includes an additional reasoning phase, useful for deeper analytical responses.
 
 ```csharp
 var models = await client.ListModelsAsync();
@@ -50,16 +57,21 @@ foreach (var model in models.Data)
 
 ### Basic Chat Interaction
 
+When constructing a conversation, you can use different types of messages to define roles:
+
+- **`Message.NewSystemMessage(content)`**: Used for system instructions or context setting.
+- **`Message.NewAssistantMessage(content)`**: Represents a response from the AI assistant.
+- **`Message.NewUserMessage(content)`**: Represents a message from the user.
+
 ```csharp
 var chatRequest = new ChatRequest
 {
-    Messages = new[]
-    {
+    Messages = [
         Message.NewUserMessage("Explain quantum computing in 3 sentences"),
         Message.NewAssistantMessage("..."),
         Message.NewUserMessage("Now simplify it for a 5th grader")
-    },
-    Model = Models.DeepSeekChat
+    ],
+    Model = Models.ModelChat
 };
 
 var response = await client.ChatAsync(chatRequest);
@@ -71,9 +83,10 @@ Console.WriteLine(response?.Choices.First().Message.Content ?? "No response");
 ```csharp
 var streamRequest = new ChatRequest
 {
-    Messages = new[] { Message.NewUserMessage("Tell a 100-word sci-fi story") },
-    Model = Models.DeepSeekChat,
-    Stream = true
+    Messages = [
+        Message.NewUserMessage("Tell a 100-word sci-fi story") }
+    ],
+    Model = Models.ModelChat
 };
 
 var stream = await client.ChatStreamAsync(streamRequest);
@@ -84,6 +97,25 @@ await foreach (var chunk in stream)
     Console.Write(chunk.Delta?.Content);
 }
 ```
+
+### Read Reasoning Content
+
+Only in case of `Models.Reasoner`, you will have available also the Reasoning Content
+
+```csharp
+var chatRequest = new ChatRequest
+{
+    Messages = [
+        Message.NewUserMessage("Hello! Tell me an interesting fact about space.")
+    ],
+    Model = Models.ModelReasoner
+};
+
+var response = await client.ChatAsync(chatRequest);
+var reasoningContent = response?.Choices.First().Message.ReasoningContent ?? String.Empty;
+Console.WriteLine(reasoningContent);
+```
+
 ## 🤝 Contributing
 
 We welcome contributions! Please follow our contribution guidelines when:
