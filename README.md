@@ -75,7 +75,8 @@ var chatRequest = new ChatRequest
 };
 
 var response = await client.ChatAsync(chatRequest);
-Console.WriteLine(response?.Choices.First().Message.Content ?? "No response");
+var responseContent = response?.Choices.First().Message.Content ?? "No response"
+Console.WriteLine(responseContent);
 ```
 
 ### Real-Time Streaming
