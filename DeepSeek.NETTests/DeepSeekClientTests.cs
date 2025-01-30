@@ -47,7 +47,7 @@ namespace DeepSeek.Tests
             // Arrange
             var request = new ChatRequest
             {
-                Messages = [Message.NewUserMessage("Hola! Dime un hecho interesante sobre el espacio")],
+                Messages = [Message.NewUserMessage("Hello! Tell me an interesting fact about space.")],
                 Model = Models.ModelChat
             };
 
@@ -60,12 +60,30 @@ namespace DeepSeek.Tests
         }
 
         [TestMethod]
+        public async Task ChatAsyncTest_ValidReasonerRequest_ReturnsReasonerResponse()
+        {
+            // Arrange
+            var request = new ChatRequest
+            {
+                Messages = [Message.NewUserMessage("Hello! Tell me an interesting fact about space.")],
+                Model = Models.ModelReasoner
+            };
+
+            // Act
+            var result = await _client!.ChatAsync(request);
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.IsFalse(string.IsNullOrEmpty(result!.Choices!.First().Message!.ReasoningContent));
+        }
+
+        [TestMethod]
         public async Task ChatStreamAsyncTest_ValidRequest_StreamsResponses()
         {
             // Arrange
             var request = new ChatRequest
             {
-                Messages = [Message.NewUserMessage("Explica la teoría de la relatividad en 3 frases")],
+                Messages = [Message.NewUserMessage("Explain the theory of relativity in 3 sentences.")],
                 Model = Models.ModelChat
             };
 

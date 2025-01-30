@@ -1,8 +1,13 @@
-﻿namespace DeepSeek.Classes;
+﻿using System.Text.Json.Serialization;
+
+namespace DeepSeek.Classes;
 
 public class Message
 {
     public string Content { get; set; } = string.Empty;
+
+    [JsonPropertyName("reasoning_content")]
+    public string ReasoningContent { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
 
 
