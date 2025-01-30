@@ -75,7 +75,8 @@ var chatRequest = new ChatRequest
 };
 
 var response = await client.ChatAsync(chatRequest);
-var responseContent = response?.Choices.First().Message.Content ?? "No response"
+var responseContent = response?.Choices.First().Message.Content ?? "No response";
+
 Console.WriteLine(responseContent);
 ```
 
@@ -114,6 +115,7 @@ var chatRequest = new ChatRequest
 
 var response = await client.ChatAsync(chatRequest);
 var reasoningContent = response?.Choices.First().Message.ReasoningContent ?? String.Empty;
+
 Console.WriteLine(reasoningContent);
 ```
 
