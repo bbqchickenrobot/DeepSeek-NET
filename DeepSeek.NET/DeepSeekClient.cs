@@ -16,6 +16,7 @@ public class DeepSeekClient : IChatClient, IDisposable
 {
     private readonly HttpClient _httpClient;
     private bool _disposed;
+    private readonly ChatClientMetadata _metadata = new("deepseek", new Uri(Constants.BaseAddress));
 
     public JsonSerializerOptions JsonSerializerOptions { get; } = new()
     {
@@ -68,7 +69,7 @@ public class DeepSeekClient : IChatClient, IDisposable
     /// </summary>
     /// <param name="request">Chat request parameters</param>
     /// <returns>Chat response or null if failed</returns>
-    public async Task<ChatResponse?> ChatAsync(ChatRequest request, CancellationToken cancellationToken = default)
+    public async Task<DeepSeek.Classes.ChatResponse?> ChatAsync(ChatRequest request, CancellationToken cancellationToken = default)
     {
         request.Stream = false;
         using var content = JsonContent.Create(request, options: JsonSerializerOptions);
@@ -81,7 +82,7 @@ public class DeepSeekClient : IChatClient, IDisposable
             return null;
         }
 
-        return await response.Content.ReadFromJsonAsync<ChatResponse>(JsonSerializerOptions, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<DeepSeek.Classes.ChatResponse>(JsonSerializerOptions, cancellationToken);
     }
 
     /// <summary>
@@ -132,7 +133,7 @@ public class DeepSeekClient : IChatClient, IDisposable
                 if (line == Constants.StreamDoneSign) break;
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                var chatResponse = JsonSerializer.Deserialize<ChatResponse>(line, JsonSerializerOptions);
+                var chatResponse = JsonSerializer.Deserialize<DeepSeek.Classes.ChatResponse>(line, JsonSerializerOptions);
 
                 var choice = chatResponse?.Choices.FirstOrDefault();
                 if (choice is null) continue;
@@ -159,31 +160,32 @@ public class DeepSeekClient : IChatClient, IDisposable
     }
 
     #region IChatClient
-    async Task<ChatCompletion> IChatClient.CompleteAsync(IList<ChatMessage> chatMessages, ChatOptions? options, CancellationToken cancellationToken)
+    async Task<Microsoft.Extensions.AI.ChatResponse> IChatClient.GetResponseAsync(IList<ChatMessage> chatMessages, ChatOptions? options, CancellationToken cancellationToken)
     {
         ChatRequest request = CreateChatRequest(chatMessages, options);
 
-        ChatResponse? response = await ChatAsync(request, cancellationToken);
+        DeepSeek.Classes.ChatResponse? response = await ChatAsync(request, cancellationToken);
         ThrowIfRequestFailed(response);
 
-        return CreateChatCompletion(response);
+        return CreateMeaiChatResponse(response);
     }
 
-    async IAsyncEnumerable<StreamingChatCompletionUpdate> IChatClient.CompleteStreamingAsync(IList<ChatMessage> chatMessages, ChatOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<ChatResponseUpdate> IChatClient.GetStreamingResponseAsync(IList<ChatMessage> chatMessages, ChatOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         IAsyncEnumerable<Choice>? choices = await ChatStreamAsync(CreateChatRequest(chatMessages, options), cancellationToken);
         ThrowIfRequestFailed(choices);
 
         await foreach (var choice in choices)
         {
-            yield return CreateStreamingChatCompletionUpdate(choice);
+            yield return CreateChatResponseUpdate(choice);
         }
     }
 
     object? IChatClient.GetService(Type serviceType, object? serviceKey) =>
-        serviceKey is null && serviceType?.IsInstanceOfType(this) is true ? this : null;
-
-    ChatClientMetadata IChatClient.Metadata { get; } = new("deepseek", new Uri(Constants.BaseAddress));
+        serviceKey is not null ? null :
+        serviceType == typeof(ChatClientMetadata) ? _metadata :
+        serviceType?.IsInstanceOfType(this) is true ? this : 
+        null;
 
     private void ThrowIfRequestFailed([NotNull] object? response)
     {
@@ -195,11 +197,11 @@ public class DeepSeekClient : IChatClient, IDisposable
         }
     }
 
-    private static ChatCompletion CreateChatCompletion(ChatResponse response)
+    private static Microsoft.Extensions.AI.ChatResponse CreateMeaiChatResponse(DeepSeek.Classes.ChatResponse response)
     {
-        ChatCompletion completion = new([])
+        Microsoft.Extensions.AI.ChatResponse completion = new([])
         {
-            CompletionId = response.Id,
+            ResponseId = response.Id,
             ModelId = response.Model,
             CreatedAt = DateTimeOffset.FromUnixTimeSeconds(response.Created)
         };
@@ -257,11 +259,11 @@ public class DeepSeekClient : IChatClient, IDisposable
         return m;
     }
 
-    private static StreamingChatCompletionUpdate CreateStreamingChatCompletionUpdate(Choice choice)
+    private static ChatResponseUpdate CreateChatResponseUpdate(Choice choice)
     {
         Message? choiceMessage = choice.Delta ?? choice.Message;
 
-        StreamingChatCompletionUpdate update = new()
+        ChatResponseUpdate update = new()
         {
             ChoiceIndex = (int)choice.Index,
             FinishReason = CreateFinishReason(choice),
