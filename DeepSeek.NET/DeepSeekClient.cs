@@ -160,9 +160,9 @@ public class DeepSeekClient : IChatClient, IDisposable
     }
 
     #region IChatClient
-    async Task<Microsoft.Extensions.AI.ChatResponse> IChatClient.GetResponseAsync(IList<ChatMessage> chatMessages, ChatOptions? options, CancellationToken cancellationToken)
+    async Task<Microsoft.Extensions.AI.ChatResponse> IChatClient.GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options, CancellationToken cancellationToken)
     {
-        ChatRequest request = CreateChatRequest(chatMessages, options);
+        ChatRequest request = CreateChatRequest(messages, options);
 
         DeepSeek.Classes.ChatResponse? response = await ChatAsync(request, cancellationToken);
         ThrowIfRequestFailed(response);
@@ -170,14 +170,15 @@ public class DeepSeekClient : IChatClient, IDisposable
         return CreateMeaiChatResponse(response);
     }
 
-    async IAsyncEnumerable<ChatResponseUpdate> IChatClient.GetStreamingResponseAsync(IList<ChatMessage> chatMessages, ChatOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<ChatResponseUpdate> IChatClient.GetStreamingResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        IAsyncEnumerable<Choice>? choices = await ChatStreamAsync(CreateChatRequest(chatMessages, options), cancellationToken);
+        IAsyncEnumerable<Choice>? choices = await ChatStreamAsync(CreateChatRequest(messages, options), cancellationToken);
         ThrowIfRequestFailed(choices);
 
+        string responseId = Guid.NewGuid().ToString("N");
         await foreach (var choice in choices)
         {
-            yield return CreateChatResponseUpdate(choice);
+            yield return CreateChatResponseUpdate(choice, responseId);
         }
     }
 
@@ -206,10 +207,10 @@ public class DeepSeekClient : IChatClient, IDisposable
             CreatedAt = DateTimeOffset.FromUnixTimeSeconds(response.Created)
         };
 
-        foreach (var choice in response.Choices)
+        if (response.Choices is { Count: > 0 })
         {
-            completion.FinishReason ??= CreateFinishReason(choice);
-            completion.Choices.Add(CreateChatMessage(choice));
+            completion.FinishReason ??= CreateFinishReason(response.Choices[0]);
+            completion.Messages.Add(CreateChatMessage(response.Choices[0]));
         }
 
         if (response.Usage is Usage usage)
@@ -244,11 +245,9 @@ public class DeepSeekClient : IChatClient, IDisposable
     {
         Message? choiceMessage = choice.Delta ?? choice.Message;
 
-        ChatMessage m = new()
+        ChatMessage m = new(CreateChatRole(choiceMessage), choiceMessage?.Content)
         {
             RawRepresentation = choice,
-            Role = CreateChatRole(choiceMessage),
-            Text = choiceMessage?.Content
         };
 
         if (choice.Logprobs is not null)
@@ -259,17 +258,15 @@ public class DeepSeekClient : IChatClient, IDisposable
         return m;
     }
 
-    private static ChatResponseUpdate CreateChatResponseUpdate(Choice choice)
+    private static ChatResponseUpdate CreateChatResponseUpdate(Choice choice, string responseId)
     {
         Message? choiceMessage = choice.Delta ?? choice.Message;
 
-        ChatResponseUpdate update = new()
+        ChatResponseUpdate update = new(CreateChatRole(choiceMessage), choiceMessage?.Content)
         {
-            ChoiceIndex = (int)choice.Index,
             FinishReason = CreateFinishReason(choice),
             RawRepresentation = choice,
-            Role = CreateChatRole(choiceMessage),
-            Text = choiceMessage?.Content
+            ResponseId = responseId,
         };
 
         if (choice.Logprobs is not null)
@@ -288,7 +285,7 @@ public class DeepSeekClient : IChatClient, IDisposable
             _ => ChatRole.Assistant,
         };
 
-    private static ChatRequest CreateChatRequest(IList<ChatMessage> chatMessages, ChatOptions? options)
+    private static ChatRequest CreateChatRequest(IEnumerable<ChatMessage> chatMessages, ChatOptions? options)
     {
         ChatRequest request = new();
 
