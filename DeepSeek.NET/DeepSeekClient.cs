@@ -210,7 +210,7 @@ public class DeepSeekClient : IChatClient, IDisposable
         if (response.Choices is { Count: > 0 })
         {
             completion.FinishReason ??= CreateFinishReason(response.Choices[0]);
-            completion.Messages.Add(CreateChatMessage(response.Choices[0]));
+            completion.Messages.Add(CreateChatMessage(response, response.Choices[0]));
         }
 
         if (response.Usage is Usage usage)
@@ -241,12 +241,13 @@ public class DeepSeekClient : IChatClient, IDisposable
             _ => null,
         };
 
-    private static ChatMessage CreateChatMessage(Choice choice)
+    private static ChatMessage CreateChatMessage(DeepSeek.Classes.ChatResponse response, Choice choice)
     {
         Message? choiceMessage = choice.Delta ?? choice.Message;
 
         ChatMessage m = new(CreateChatRole(choiceMessage), choiceMessage?.Content)
         {
+            MessageId = response.Id,
             RawRepresentation = choice,
         };
 
@@ -285,9 +286,9 @@ public class DeepSeekClient : IChatClient, IDisposable
             _ => ChatRole.Assistant,
         };
 
-    private static ChatRequest CreateChatRequest(IEnumerable<ChatMessage> chatMessages, ChatOptions? options)
+    private ChatRequest CreateChatRequest(IEnumerable<ChatMessage> chatMessages, ChatOptions? options)
     {
-        ChatRequest request = new();
+        ChatRequest request = options?.RawRepresentationFactory?.Invoke(this) as ChatRequest ?? new();
 
         if (options is not null)
         {
@@ -298,11 +299,14 @@ public class DeepSeekClient : IChatClient, IDisposable
             if (options.StopSequences is not null) request.Stop = [.. options.StopSequences];
             if (options.Temperature is not null) request.Temperature = options.Temperature.Value;
             if (options.TopP is not null) request.TopP = options.TopP.Value;
-            if (options.AdditionalProperties?.TryGetValue(nameof(request.Logprobs), out bool logprobs) is true) request.Logprobs = logprobs;
-            if (options.AdditionalProperties?.TryGetValue(nameof(request.TopLogprobs), out int topLogprobs) is true) request.TopLogprobs = topLogprobs;
         }
 
         List<Message> messages = [];
+        if (request.Messages is not null)
+        {
+            messages.AddRange(request.Messages);
+        }
+
         foreach (var message in chatMessages)
         {
             string role;
